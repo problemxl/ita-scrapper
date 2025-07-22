@@ -2,12 +2,13 @@
 Test configuration and fixtures.
 """
 
-import pytest
 import asyncio
 from datetime import date, timedelta
 
+import pytest
+
 from ita_scrapper import ITAScrapper
-from ita_scrapper.models import SearchParams, TripType, CabinClass
+from ita_scrapper.models import CabinClass, SearchParams, TripType
 
 
 @pytest.fixture(scope="session")
