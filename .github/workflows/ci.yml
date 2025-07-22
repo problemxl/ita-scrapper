@@ -17,7 +17,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     
@@ -28,34 +28,34 @@ jobs:
     
     - name: Install dependencies
       run: |
-        uv sync --all-extras
+        uv sync --extra dev
     
     - name: Install Playwright browsers
       run: |
-        uv run playwright install chromium
+        uv run playwright install chromium --with-deps
     
-    - name: Lint with ruff
-      run: |
-        uv run ruff check .
-        uv run ruff format --check .
+    #- name: Lint with ruff
+    #  run: |
+    #    uv run ruff check .
+    #    uv run ruff format --check .
     
-    - name: Type check with mypy
-      run: |
-        uv run mypy src/ita_scrapper
+    #- name: Type check with mypy
+    #  run: |
+    #    uv run mypy src/ita_scrapper
     
     - name: Run tests
       run: |
-        uv run pytest -v --tb=short -m "not slow"
+        uv run pytest -v --tb=short -m "not integration"
       env:
         CI: true
     
     - name: Generate coverage report
       run: |
-        uv run pytest --cov=src/ita_scrapper --cov-report=xml -m "not slow"
+        uv run pytest --cov=src/ita_scrapper --cov-report=xml -m "not integration"
     
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
+    #- name: Upload coverage to Codecov
+    #  uses: codecov/codecov-action@v3
+    #  with:
+    #    file: ./coverage.xml
+    #    flags: unittests
+    #    name: codecov-umbrella

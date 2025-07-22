@@ -3,45 +3,53 @@ Configuration settings for ITA Scrapper.
 """
 
 import os
-from typing import Dict, Any
+from typing import Any, ClassVar
 
 
 class Config:
     """Configuration class for ITA Scrapper."""
-    
+
     # Browser settings
     DEFAULT_TIMEOUT = int(os.getenv("ITA_TIMEOUT", "30000"))  # milliseconds
     DEFAULT_HEADLESS = os.getenv("ITA_HEADLESS", "true").lower() == "true"
     DEFAULT_VIEWPORT = (
         int(os.getenv("ITA_VIEWPORT_WIDTH", "1920")),
-        int(os.getenv("ITA_VIEWPORT_HEIGHT", "1080"))
+        int(os.getenv("ITA_VIEWPORT_HEIGHT", "1080")),
     )
-    
+
     # User agents for different browsers
-    USER_AGENTS = {
-        "chrome": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    USER_AGENTS: ClassVar[dict[str, str]] = {
+        "chrome": (
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        ),
         "firefox": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/121.0",
-        "safari": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15",
+        "safari": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15"
+        ),
     }
-    
+
     # Scraping settings
     MAX_RETRIES = int(os.getenv("ITA_MAX_RETRIES", "3"))
     RETRY_DELAY = float(os.getenv("ITA_RETRY_DELAY", "1.0"))  # seconds
     MAX_RESULTS_DEFAULT = int(os.getenv("ITA_MAX_RESULTS", "20"))
-    
+
     # Rate limiting
-    REQUEST_DELAY = float(os.getenv("ITA_REQUEST_DELAY", "0.5"))  # seconds between requests
-    
+    REQUEST_DELAY = float(
+        os.getenv("ITA_REQUEST_DELAY", "0.5")
+    )  # seconds between requests
+
     # Logging
     LOG_LEVEL = os.getenv("ITA_LOG_LEVEL", "INFO")
     LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    
+
     # URLs
     GOOGLE_FLIGHTS_URL = "https://www.google.com/travel/flights"
     ITA_MATRIX_URL = "https://matrix.itasoftware.com/search"
-    
+
     # CSS Selectors for Google Flights
-    GOOGLE_SELECTORS = {
+    GOOGLE_SELECTORS: ClassVar[dict[str, str]] = {
         "flight_card": '[data-testid="flight-card"]',
         "price": '[data-testid="price"]',
         "airline": '[data-testid="airline"]',
@@ -61,16 +69,16 @@ class Config:
         "multi_city_button": 'button[aria-label*="Multi-city"]',
         "flexible_dates_button": 'button[aria-label*="Flexible dates"]',
     }
-    
+
     # CSS Selectors for ITA Matrix
-    ITA_MATRIX_SELECTORS = {
-        "flight_card": '.itinerary',
-        "price": '.price, .currency',
-        "airline": '.airline',
-        "departure_time": '.departure-time',
-        "arrival_time": '.arrival-time',
-        "duration": '.duration',
-        "stops": '.stops',
+    ITA_MATRIX_SELECTORS: ClassVar[dict[str, str]] = {
+        "flight_card": ".itinerary",
+        "price": ".price, .currency",
+        "airline": ".airline",
+        "departure_time": ".departure-time",
+        "arrival_time": ".arrival-time",
+        "duration": ".duration",
+        "stops": ".stops",
         "search_button": 'button[type="submit"]',
         "origin_input": 'input[placeholder*="From"]',
         "destination_input": 'input[placeholder*="To"]',
@@ -81,53 +89,56 @@ class Config:
         "passengers_input": 'input[name="passengers"]',
         "cabin_class_select": 'select[name="class"]',
     }
-    
+
     # Legacy selectors (kept for backward compatibility)
     SELECTORS = GOOGLE_SELECTORS
-    
+
     # XPath selectors as backup
-    XPATH_SELECTORS = {
+    XPATH_SELECTORS: ClassVar[dict[str, str]] = {
         "flight_cards": "//div[contains(@class, 'flight-card')]",
         "price": ".//span[contains(@class, 'price')]",
         "airline_logo": ".//img[contains(@alt, 'airline')]",
     }
-    
+
     @classmethod
     def get_browser_args(cls) -> list[str]:
         """Get browser launch arguments."""
         return [
-            '--no-sandbox',
-            '--disable-blink-features=AutomationControlled',
-            '--disable-web-security',
-            '--disable-features=VizDisplayCompositor',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding',
-            '--disable-dev-shm-usage',
-            '--no-first-run',
-            '--no-default-browser-check',
-            '--disable-extensions',
-            '--disable-plugins',
-            '--disable-default-apps',
+            "--no-sandbox",
+            "--disable-blink-features=AutomationControlled",
+            "--disable-web-security",
+            "--disable-features=VizDisplayCompositor",
+            "--disable-background-timer-throttling",
+            "--disable-backgrounding-occluded-windows",
+            "--disable-renderer-backgrounding",
+            "--disable-dev-shm-usage",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "--disable-extensions",
+            "--disable-plugins",
+            "--disable-default-apps",
         ]
-    
+
     @classmethod
-    def get_context_options(cls) -> Dict[str, Any]:
+    def get_context_options(cls) -> dict[str, Any]:
         """Get browser context options."""
         return {
-            'viewport': {
-                'width': cls.DEFAULT_VIEWPORT[0],
-                'height': cls.DEFAULT_VIEWPORT[1]
+            "viewport": {
+                "width": cls.DEFAULT_VIEWPORT[0],
+                "height": cls.DEFAULT_VIEWPORT[1],
             },
-            'user_agent': cls.USER_AGENTS['chrome'],
-            'locale': 'en-US',
-            'timezone_id': 'America/New_York',
-            'permissions': [],
-            'extra_http_headers': {
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            }
+            "user_agent": cls.USER_AGENTS["chrome"],
+            "locale": "en-US",
+            "timezone_id": "America/New_York",
+            "permissions": [],
+            "extra_http_headers": {
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Accept": (
+                    "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                    "image/webp,*/*;q=0.8"
+                ),
+            },
         }
 
 
@@ -151,13 +162,13 @@ TESTING_CONFIG = {
 }
 
 
-def get_config(environment: str = "development") -> Dict[str, Any]:
+def get_config(environment: str = "development") -> dict[str, Any]:
     """
     Get configuration for specific environment.
-    
+
     Args:
         environment: Environment name (development, production, testing)
-        
+
     Returns:
         Configuration dictionary
     """
@@ -170,14 +181,14 @@ def get_config(environment: str = "development") -> Dict[str, Any]:
         "request_delay": Config.REQUEST_DELAY,
         "log_level": Config.LOG_LEVEL,
     }
-    
+
     env_configs = {
         "development": DEVELOPMENT_CONFIG,
         "production": PRODUCTION_CONFIG,
         "testing": TESTING_CONFIG,
     }
-    
+
     env_config = env_configs.get(environment, {})
     base_config.update(env_config)
-    
+
     return base_config
