@@ -45,7 +45,11 @@ jobs:
         with:
           version: "latest"
 
-      - name: Install dependencies
+      - name: Install package in development mode
+        run: |
+          uv pip install --system -e .
+
+      - name: Install documentation dependencies
         run: |
           uv pip install --system mkdocs mkdocs-material mkdocs-autorefs mkdocstrings[python] pymdown-extensions
 
