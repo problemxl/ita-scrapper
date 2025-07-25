@@ -1,7 +1,7 @@
 site_name: ITA Scrapper Documentation
 site_description: Professional flight search automation with ITA Matrix scraping
-site_url: https://your-username.github.io/ita-scrapper/
-repo_url: https://github.com/your-username/ita-scrapper
+site_url: https://problemxl.github.io/ita-scrapper/
+repo_url: https://github.com/problemxl/ita-scrapper
 repo_name: ita-scrapper
 
 theme:
@@ -84,6 +84,6 @@ nav:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/your-username/ita-scrapper
+      link: https://github.com/problemxl/ita-scrapper
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/ita-scrapper/

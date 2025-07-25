@@ -17,7 +17,7 @@ pip install ita-scrapper
 For development or latest features:
 
 ```bash
-git clone https://github.com/your-username/ita-scrapper
+git clone https://github.com/problemxl/ita-scrapper
 cd ita-scrapper
 uv pip install -e ".[dev]"
 ```

@@ -43,7 +43,7 @@ pip install ita-scrapper
 
 For development:
 ```bash
-git clone https://github.com/your-username/ita-scrapper
+git clone https://github.com/problemxl/ita-scrapper
 cd ita-scrapper
 uv pip install -e ".[dev]"
 ```
@@ -57,6 +57,6 @@ uv pip install -e ".[dev]"
 
 ## Support
 
-- GitHub Issues: [Report bugs and request features](https://github.com/your-username/ita-scrapper/issues)
+- GitHub Issues: [Report bugs and request features](https://github.com/problemxl/ita-scrapper/issues)
 - Documentation: This site provides comprehensive guides and API reference
 - Examples: Check out the `examples/` directory for real-world usage patterns

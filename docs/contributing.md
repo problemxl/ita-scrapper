@@ -4,7 +4,7 @@
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/ita-scrapper
+   git clone https://github.com/problemxl/ita-scrapper
    cd ita-scrapper
    ```
 

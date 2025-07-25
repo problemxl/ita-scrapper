@@ -156,7 +156,7 @@ See the [Contributing Guide](contributing.md) for detailed instructions on:
 - Pull request process
 
 ### How do I report bugs?
-1. Check [existing issues](https://github.com/your-username/ita-scrapper/issues)
+1. Check [existing issues](https://github.com/problemxl/ita-scrapper/issues)
 2. Create new issue with:
    - Python version
    - Chrome version
