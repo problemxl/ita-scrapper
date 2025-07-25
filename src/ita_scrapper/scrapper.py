@@ -1,5 +1,14 @@
 """
-Main ITA Scrapper class for interacting with the ITA website.
+ITA Scrapper main module for flight data extraction.
+
+This module provides the core ITAScrapper class for extracting flight information
+from ITA Matrix and Google Flights using browser automation. It supports both
+simple flight searches and complex multi-city itineraries with comprehensive
+error handling and anti-detection measures.
+
+The scrapper uses Playwright for browser automation and includes specialized
+parsers for handling dynamic content, tooltips, and Angular Material components
+found on modern travel booking sites.
 """
 
 import logging
@@ -31,7 +40,51 @@ logger = logging.getLogger(__name__)
 
 
 class ITAScrapper:
-    """Main scrapper class for ITA website."""
+    """
+    Main scrapper class for extracting flight data from travel booking websites.
+
+    This class provides a unified interface for scraping flight information from
+    both ITA Matrix (matrix.itasoftware.com) and Google Flights. It handles browser
+    automation, form filling, result parsing, and provides robust error handling
+    for the complex dynamic interfaces found on modern travel sites.
+
+    The scrapper supports:
+    - One-way, round-trip, and multi-city flight searches
+    - Flexible date searches with price calendars
+    - Multiple cabin classes (Economy, Premium Economy, Business, First)
+    - Variable passenger configurations (adults, children, infants)
+    - Anti-detection measures to avoid bot blocking
+    - Comprehensive error handling and recovery
+
+    Attributes:
+        GOOGLE_FLIGHTS_URL: Base URL for Google Flights
+        ITA_MATRIX_URL: Base URL for ITA Matrix (default and recommended)
+        BASE_URL: Currently active base URL based on configuration
+
+    Example:
+        Basic flight search with context manager (recommended):
+
+        >>> async with ITAScrapper(headless=True, use_matrix=True) as scrapper:
+        ...     result = await scrapper.search_flights(
+        ...         origin="JFK",
+        ...         destination="LAX",
+        ...         departure_date=date(2024, 8, 15),
+        ...         return_date=date(2024, 8, 22),
+        ...         adults=2,
+        ...         cabin_class=CabinClass.BUSINESS
+        ...     )
+        ...     for flight in result.flights:
+        ...         print(f"${flight.price} - {flight.total_duration_minutes//60}h")
+
+        Manual resource management:
+
+        >>> scrapper = ITAScrapper(headless=False, timeout=60000)
+        >>> await scrapper.start()
+        >>> try:
+        ...     result = await scrapper.search_flights("NYC", "LAX", date.today())
+        ... finally:
+        ...     await scrapper.close()
+    """
 
     GOOGLE_FLIGHTS_URL = "https://www.google.com/travel/flights"
     ITA_MATRIX_URL = "https://matrix.itasoftware.com/search"
@@ -48,14 +101,39 @@ class ITAScrapper:
         use_matrix: bool = True,
     ):
         """
-        Initialize the ITA Scrapper.
+        Initialize the ITA Scrapper with browser and parsing configuration.
 
         Args:
-            headless: Whether to run browser in headless mode
-            timeout: Default timeout in milliseconds
-            viewport_size: Browser viewport size (width, height)
-            user_agent: Custom user agent string
-            use_matrix: Whether to use ITA Matrix (True) or Google Flights (False)
+            headless: Whether to run browser in headless mode. Set to False for debugging
+                to see the browser window and interactions. Default: True
+            timeout: Default timeout in milliseconds for all browser operations including
+                page loads, element waits, and form interactions. Default: 30000 (30s)
+            viewport_size: Browser viewport size as (width, height) tuple. Larger sizes
+                may help with responsive layouts but use more memory. Default: (1920, 1080)
+            user_agent: Custom user agent string to use for requests. If None, uses
+                Playwright's default Chrome user agent. Can help with site compatibility
+            use_matrix: Whether to use ITA Matrix (True) or Google Flights (False).
+                ITA Matrix is recommended as it provides more detailed flight data and
+                better parsing reliability. Default: True
+
+        Note:
+            ITA Matrix (use_matrix=True) is the recommended option because:
+            - More comprehensive flight details and pricing
+            - Better support for complex routes and multi-city searches
+            - More reliable selectors and parsing logic
+            - Professional-grade data used by travel industry
+
+            Google Flights is provided as an alternative but may have less detailed data.
+
+        Example:
+            >>> # Production configuration with ITA Matrix
+            >>> scrapper = ITAScrapper(headless=True, timeout=45000, use_matrix=True)
+
+            >>> # Debug configuration to see browser interactions
+            >>> scrapper = ITAScrapper(headless=False, timeout=60000, use_matrix=True)
+
+            >>> # High-res viewport for better element visibility
+            >>> scrapper = ITAScrapper(viewport_size=(2560, 1440), use_matrix=True)
         """
         self.headless = headless
         self.timeout = timeout
@@ -80,16 +158,70 @@ class ITAScrapper:
             self._parser = None  # Will use basic parsing for Google Flights
 
     async def __aenter__(self):
-        """Async context manager entry."""
+        """
+        Async context manager entry point.
+
+        Automatically starts the browser and initializes all resources needed
+        for flight searching. This is the recommended way to use ITAScrapper
+        as it ensures proper resource cleanup even if exceptions occur.
+
+        Returns:
+            self: The initialized ITAScrapper instance ready for use
+
+        Raises:
+            ITAScrapperError: If browser initialization fails
+
+        Example:
+            >>> async with ITAScrapper() as scrapper:
+            ...     # scrapper is now ready to use
+            ...     result = await scrapper.search_flights("JFK", "LAX", date.today())
+            ...     # browser automatically closed when exiting context
+        """
         await self.start()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit."""
+        """
+        Async context manager exit point.
+
+        Automatically closes the browser and cleans up all resources.
+        Called even if exceptions occur within the context block.
+
+        Args:
+            exc_type: Exception type if an exception occurred, None otherwise
+            exc_val: Exception value if an exception occurred, None otherwise
+            exc_tb: Exception traceback if an exception occurred, None otherwise
+        """
         await self.close()
 
     async def start(self):
-        """Start the browser and create a new page."""
+        """
+        Initialize and start the browser with anti-detection measures.
+
+        Launches a Chromium browser instance with carefully configured options
+        to avoid detection as an automated browser. Sets up the browser context
+        with appropriate viewport, user agent, and other settings for reliable
+        operation with travel booking sites.
+
+        The browser is configured with:
+        - Anti-automation detection flags disabled
+        - Sandbox and security features adjusted for compatibility
+        - Custom viewport and user agent settings
+        - Default timeout configuration
+
+        Raises:
+            ITAScrapperError: If browser fails to start or initialize properly
+
+        Note:
+            This method is automatically called when using the scrapper as a context
+            manager. Only call manually if not using async with statement.
+
+        Example:
+            >>> scrapper = ITAScrapper()
+            >>> await scrapper.start()
+            >>> # Use scrapper...
+            >>> await scrapper.close()  # Don't forget to clean up!
+        """
         try:
             self._playwright = await async_playwright().start()
             self._browser = await self._playwright.chromium.launch(
@@ -120,7 +252,24 @@ class ITAScrapper:
             raise ITAScrapperError(f"Failed to start browser: {e}")
 
     async def close(self):
-        """Close the browser and cleanup resources."""
+        """
+        Close the browser and cleanup all resources.
+
+        Safely closes the browser page, browser instance, and Playwright runtime.
+        This method is idempotent and safe to call multiple times.
+
+        Should always be called after using the scrapper to prevent resource leaks,
+        unless using the async context manager which handles cleanup automatically.
+
+        Example:
+            >>> scrapper = ITAScrapper()
+            >>> await scrapper.start()
+            >>> try:
+            ...     # Use scrapper...
+            ...     pass
+            ... finally:
+            ...     await scrapper.close()  # Always cleanup
+        """
         try:
             if self._page:
                 await self._page.close()
@@ -147,21 +296,72 @@ class ITAScrapper:
         max_results: int = 20,
     ) -> FlightResult:
         """
-        Search for flights between two destinations.
+        Search for flights between two destinations with comprehensive options.
+
+        This is the primary method for flight searches. It handles form filling,
+        search execution, and result parsing for both one-way and round-trip flights.
+        The method automatically validates inputs, navigates to the appropriate site,
+        fills the search form, and parses results into structured Flight objects.
 
         Args:
-            origin: Origin airport code
-            destination: Destination airport code
-            departure_date: Departure date
-            return_date: Return date (for round trip)
-            cabin_class: Cabin class preference
-            adults: Number of adult passengers
-            children: Number of child passengers
-            infants: Number of infant passengers
-            max_results: Maximum number of results to return
+            origin: Origin airport code (IATA 3-letter code like "JFK", "LAX").
+                Also accepts city codes and some airport names
+            destination: Destination airport code (IATA 3-letter code).
+                Must be different from origin
+            departure_date: Departure date. Must be today or in the future
+            return_date: Return date for round-trip flights. If None, searches
+                for one-way flights. Must be same day or after departure_date
+            cabin_class: Preferred cabin class. Affects pricing and available flights.
+                Options: ECONOMY (default), PREMIUM_ECONOMY, BUSINESS, FIRST
+            adults: Number of adult passengers (age 18+). Must be >= 1. Default: 1
+            children: Number of child passengers (age 2-17). Default: 0
+            infants: Number of infant passengers (under 2). Default: 0
+            max_results: Maximum number of flight results to return. Higher values
+                take longer to parse. Default: 20
 
         Returns:
-            FlightResult containing found flights
+            FlightResult: Contains list of Flight objects, search parameters,
+            and metadata about the search. Each Flight includes segments,
+            pricing, duration, stops, and airline information.
+
+        Raises:
+            ITAScrapperError: If search parameters are invalid
+            NavigationError: If unable to reach the booking site
+            ParseError: If unable to parse search results
+            ValidationError: If Pydantic model validation fails
+
+        Example:
+            One-way flight search:
+
+            >>> result = await scrapper.search_flights(
+            ...     origin="JFK",
+            ...     destination="LAX",
+            ...     departure_date=date(2024, 8, 15),
+            ...     adults=1,
+            ...     cabin_class=CabinClass.ECONOMY
+            ... )
+            >>> print(f"Found {len(result.flights)} flights")
+            >>> cheapest = min(result.flights, key=lambda f: f.price)
+            >>> print(f"Cheapest: ${cheapest.price}")
+
+            Round-trip with multiple passengers:
+
+            >>> result = await scrapper.search_flights(
+            ...     origin="NYC",
+            ...     destination="LON",
+            ...     departure_date=date(2024, 12, 20),
+            ...     return_date=date(2024, 12, 27),
+            ...     adults=2,
+            ...     children=1,
+            ...     cabin_class=CabinClass.BUSINESS,
+            ...     max_results=10
+            ... )
+
+        Note:
+            - ITA Matrix provides more detailed results than Google Flights
+            - Search times vary by route complexity and result count
+            - Weekend and holiday dates typically show higher prices
+            - Business/First class may have fewer available flights
         """
         # Validate inputs
         trip_type = TripType.ROUND_TRIP if return_date else TripType.ONE_WAY
@@ -635,10 +835,13 @@ class ITAScrapper:
                         class_name = await input_elem.get_attribute("class") or ""
 
                         # Look for date-related hints
-                        if any(
-                            keyword in (placeholder + class_name).lower()
-                            for keyword in ["date", "depart", "return"]
-                        ) and "airport" not in (placeholder + class_name).lower():
+                        if (
+                            any(
+                                keyword in (placeholder + class_name).lower()
+                                for keyword in ["date", "depart", "return"]
+                            )
+                            and "airport" not in (placeholder + class_name).lower()
+                        ):
                             is_visible = await input_elem.is_visible()
                             is_enabled = await input_elem.is_enabled()
 

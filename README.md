@@ -87,7 +87,47 @@ ita-scrapper parse "14:30" --type time --reference-date 2024-08-15
 ita-scrapper --help
 ```
 
-## 📚 API Reference
+## 📚 Documentation
+
+### Quick Links
+
+- **[📖 API Documentation](docs/api.md)** - Complete API reference with examples
+- **[🔧 Developer Guide](docs/developer-guide.md)** - Architecture and extension guide  
+- **[🚨 Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
+- **[📊 Project Summary](PROJECT_SUMMARY.md)** - High-level project overview
+
+### API Documentation
+
+Comprehensive API documentation is available in the [docs/api.md](docs/api.md) file, covering:
+
+- **Core Classes**: ITAScrapper, ITAMatrixParser
+- **Data Models**: Flight, SearchParams, FlightResult
+- **Utility Functions**: Price parsing, duration formatting, validation
+- **Exception Handling**: Complete error handling strategies
+- **Best Practices**: Recommended usage patterns
+
+### Developer Guide
+
+For developers wanting to extend or contribute to ITA Scrapper, see [docs/developer-guide.md](docs/developer-guide.md):
+
+- **Architecture Overview**: Component design and data flow
+- **Parser Architecture**: Multi-strategy parsing system
+- **Browser Automation**: Playwright integration and anti-detection
+- **Extension Points**: Adding new parsers and data models
+- **Debugging Guide**: Tools and techniques for troubleshooting
+- **Performance Optimization**: Memory and speed optimization
+
+### Troubleshooting
+
+Having issues? Check [docs/troubleshooting.md](docs/troubleshooting.md) for solutions to:
+
+- **Installation Issues**: Dependencies and browser setup
+- **Website Access**: Blocking, CAPTCHAs, and rate limiting  
+- **Parsing Problems**: Data extraction and validation issues
+- **Performance**: Memory usage and speed optimization
+- **Development Setup**: Environment configuration and debugging
+
+## 🚀 Quick Start
 
 ### Core Classes
 
