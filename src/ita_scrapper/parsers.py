@@ -1,5 +1,37 @@
 """
-Enhanced parsers for extracting flight data from ITA Matrix and Google Flights.
+Enhanced parsers for extracting complex flight data from ITA Matrix and Google Flights.
+
+This module provides specialized parsing logic for extracting structured flight
+information from the dynamic, JavaScript-heavy interfaces of modern travel booking
+sites. The parsers handle complex scenarios including:
+
+- Angular Material tooltips and overlays containing detailed flight data
+- Multi-segment flights with connections and layovers
+- Dynamic content loading and DOM manipulation
+- Various pricing display formats and currency handling
+- Time zone-aware scheduling information
+- Airline code normalization and aircraft type detection
+
+The primary focus is on ITA Matrix which provides the most comprehensive flight
+data through its tooltip-based information architecture. The parsers use multiple
+extraction strategies to ensure robust data collection even when page structures
+change or elements are dynamically generated.
+
+Key Features:
+- Tooltip-based data extraction for detailed flight information
+- Multi-strategy parsing with graceful fallbacks
+- Comprehensive text pattern recognition for airlines, times, and prices
+- Structured data validation and error recovery
+- Support for complex multi-segment itineraries
+
+Architecture:
+The parsing system uses a layered approach:
+1. Wait for dynamic content to load completely
+2. Extract tooltip data containing detailed flight information
+3. Identify flight result containers in the main page
+4. Cross-reference container and tooltip data
+5. Apply text processing to extract structured information
+6. Validate and construct typed data models
 """
 
 import logging
@@ -17,15 +49,109 @@ logger = logging.getLogger(__name__)
 
 
 class ITAMatrixParser:
-    """Enhanced parser specifically for ITA Matrix flight results."""
+    """
+    Specialized parser for extracting flight data from ITA Matrix's complex interface.
+
+    ITA Matrix uses a sophisticated Angular Material interface with tooltip-based
+    data presentation. This parser implements multiple extraction strategies to
+    handle the dynamic content, tooltip interactions, and complex DOM structure
+    that characterizes modern travel booking sites.
+
+    The parser's multi-layered approach:
+    1. Waits for tooltip elements to ensure all data is loaded
+    2. Extracts detailed flight information from Angular Material tooltips
+    3. Identifies main flight result containers in the page structure
+    4. Cross-references tooltip data with container elements
+    5. Applies advanced text processing to extract structured information
+    6. Constructs validated Flight objects with comprehensive metadata
+
+    Key Capabilities:
+    - Handles Angular Material component interactions
+    - Extracts data from CDK (Component Dev Kit) tooltips
+    - Parses complex multi-segment flight itineraries
+    - Processes various price formats and currency representations
+    - Handles timezone-aware flight scheduling
+    - Manages airline code normalization and aircraft type detection
+
+    Robustness Features:
+    - Multiple CSS selector strategies for element identification
+    - Graceful degradation when detailed parsing fails
+    - Text pattern recognition for airline, time, and price extraction
+    - Fallback to basic flight information when tooltips are unavailable
+    - Error recovery and logging for debugging complex sites
+
+    Usage:
+        >>> parser = ITAMatrixParser()
+        >>> flights = await parser.parse_flight_results(page, max_results=10)
+        >>> for flight in flights:
+        ...     print(f"${flight.price} - {flight.total_duration_minutes//60}h")
+
+    Note:
+        ITA Matrix frequently updates its interface. This parser includes
+        multiple extraction strategies to maintain compatibility, but may
+        require updates when major UI changes occur.
+    """
 
     def __init__(self):
+        """
+        Initialize the ITA Matrix parser with data processing utilities.
+
+        Sets up the FlightDataParser utility for standardizing airline codes,
+        flight numbers, and other structured data elements extracted from
+        the complex ITA Matrix interface.
+        """
         self.data_parser = FlightDataParser()
 
     async def parse_flight_results(
         self, page: Page, max_results: int = 10
     ) -> list[Flight]:
-        """Parse flight results from ITA Matrix page."""
+        """
+        Main entry point for parsing flight results from ITA Matrix.
+
+        Orchestrates the complete parsing process from raw page content to
+        structured Flight objects. Uses a multi-strategy approach to ensure
+        maximum data extraction success even when page layouts change.
+
+        Process Flow:
+        1. Wait for all dynamic content and tooltips to load
+        2. Extract detailed information from Angular Material tooltips
+        3. Identify and collect main flight result containers
+        4. Parse individual flights by cross-referencing containers and tooltips
+        5. Apply fallback parsing strategies if primary methods fail
+        6. Validate and return structured Flight objects
+
+        Args:
+            page: Playwright Page object for the ITA Matrix results page.
+                Should be on a page that has completed a flight search
+            max_results: Maximum number of flights to parse and return.
+                Limits processing time for large result sets. Default: 10
+
+        Returns:
+            List of Flight objects with comprehensive flight information including
+            segments, pricing, timing, airline details, and connection information.
+            Returns empty list if no flights can be parsed.
+
+        Raises:
+            Does not raise exceptions - all errors are logged and handled gracefully.
+            Returns empty list on critical failures.
+
+        Example:
+            >>> # After performing a search on ITA Matrix
+            >>> parser = ITAMatrixParser()
+            >>> flights = await parser.parse_flight_results(page, max_results=5)
+            >>> if flights:
+            ...     print(f"Found {len(flights)} flights")
+            ...     cheapest = min(flights, key=lambda f: f.price)
+            ...     print(f"Cheapest: ${cheapest.price}")
+            ... else:
+            ...     print("No flights found - check page state or search results")
+
+        Note:
+            - Page should be on ITA Matrix results after completing a search
+            - Processing time increases with max_results parameter
+            - Tooltip extraction requires page to be fully loaded
+            - May return fewer flights than max_results if parsing fails
+        """
         flights = []
 
         try:
@@ -65,7 +191,29 @@ class ITAMatrixParser:
             return []
 
     async def _wait_for_results(self, page: Page, timeout: int = 30000):
-        """Wait for flight results to load."""
+        """
+        Wait for flight search results to fully load including dynamic tooltips.
+
+        ITA Matrix loads flight data asynchronously through Angular Material
+        components. This method ensures all tooltip elements containing detailed
+        flight information are present before attempting to parse data.
+
+        Strategy:
+        1. Wait for tooltip elements with role="tooltip" to appear
+        2. Allow additional time for dynamic content loading
+        3. Verify substantial tooltip content is available
+        4. Extend wait time if insufficient data detected
+
+        Args:
+            page: Playwright Page object on ITA Matrix results
+            timeout: Maximum time to wait in milliseconds. Default: 30000 (30s)
+
+        Note:
+            - Tooltips contain the most detailed flight information
+            - Dynamic loading can take several seconds after initial page load
+            - Method does not raise exceptions, logs warnings on failures
+            - Essential for reliable data extraction from ITA Matrix
+        """
         try:
             # Wait for tooltip elements to appear (they contain the flight data)
             await page.wait_for_selector('[role="tooltip"]', timeout=timeout)
@@ -83,7 +231,38 @@ class ITAMatrixParser:
             logger.warning(f"Failed to wait for results: {e}")
 
     async def _extract_tooltip_data(self, page: Page) -> dict[str, str]:
-        """Extract all tooltip data which contains detailed flight information."""
+        """
+        Extract all tooltip data containing detailed flight information.
+
+        ITA Matrix stores comprehensive flight details in Angular Material
+        tooltips that are dynamically generated. This method uses multiple
+        extraction strategies to capture all available tooltip content.
+
+        Extraction Strategies:
+        1. Standard tooltips with role="tooltip" attribute
+        2. CDK (Component Dev Kit) tooltips with describedby patterns
+        3. Additional tooltip elements with various class/data attributes
+        4. Hidden tooltip content not visible in standard selectors
+
+        Returns:
+            Dictionary mapping tooltip IDs to their text content. Keys are
+            tooltip element IDs, values are the extracted text containing
+            flight details like times, airlines, prices, and routing information.
+
+        Example:
+            >>> tooltip_data = await parser._extract_tooltip_data(page)
+            >>> for tooltip_id, content in tooltip_data.items():
+            ...     if "time:" in content:
+            ...         print(f"Flight timing: {content}")
+            ...     elif "$" in content:
+            ...         print(f"Price info: {content}")
+
+        Note:
+            - Returns empty dict if no tooltips found
+            - Each tooltip may contain multiple pieces of flight information
+            - Tooltip IDs are used to cross-reference with flight containers
+            - Content includes raw text that requires further parsing
+        """
         tooltip_data = {}
 
         try:
