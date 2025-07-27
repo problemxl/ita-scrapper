@@ -31,11 +31,11 @@ class TestITAScrapperIntegration:
 
         await scrapper.close()
 
-    @pytest.mark.slow
+    # @pytest.mark.slow
     async def test_search_flights_integration(self):
         """Test actual flight search (slow test)."""
         # Skip this test in CI/CD or mark as slow
-        pytest.skip("Slow integration test - run manually")
+        # pytest.skip("Slow integration test - run manually")
 
         async with ITAScrapper(headless=True) as scrapper:
             result = await scrapper.search_flights(
@@ -49,10 +49,10 @@ class TestITAScrapperIntegration:
             assert result.search_params.origin == "JFK"
             assert result.search_params.destination == "LAX"
 
-    @pytest.mark.slow
+    # @pytest.mark.slow
     async def test_one_way_search_integration(self):
         """Test one-way flight search."""
-        pytest.skip("Slow integration test - run manually")
+        # pytest.skip("Slow integration test - run manually")
 
         async with ITAScrapper(headless=True) as scrapper:
             result = await scrapper.search_flights(

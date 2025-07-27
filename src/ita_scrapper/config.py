@@ -70,24 +70,24 @@ class Config:
         "flexible_dates_button": 'button[aria-label*="Flexible dates"]',
     }
 
-    # CSS Selectors for ITA Matrix
+    # CSS Selectors for ITA Matrix (Updated for Angular Material)
     ITA_MATRIX_SELECTORS: ClassVar[dict[str, str]] = {
-        "flight_card": ".itinerary",
-        "price": ".price, .currency",
-        "airline": ".airline",
-        "departure_time": ".departure-time",
-        "arrival_time": ".arrival-time",
-        "duration": ".duration",
-        "stops": ".stops",
-        "search_button": 'button[type="submit"]',
-        "origin_input": 'input[placeholder*="From"]',
-        "destination_input": 'input[placeholder*="To"]',
-        "departure_date": 'input[placeholder*="Departure"]',
-        "return_date": 'input[placeholder*="Return"]',
-        "one_way_radio": 'input[value="ow"]',
-        "round_trip_radio": 'input[value="rt"]',
-        "passengers_input": 'input[name="passengers"]',
-        "cabin_class_select": 'select[name="class"]',
+        "flight_card": ".itinerary, .mat-mdc-card",
+        "price": ".price, .currency, .mat-mdc-card .price-value",
+        "airline": ".airline, .airline-name",
+        "departure_time": ".departure-time, .time-departure",
+        "arrival_time": ".arrival-time, .time-arrival",
+        "duration": ".duration, .flight-duration",
+        "stops": ".stops, .stop-info",
+        "search_button": 'button.mat-mdc-raised-button[type="submit"], button[type="submit"]',
+        "origin_input": 'matrix-location-field[formcontrolname="origin"] input, input[placeholder*="From"]',
+        "destination_input": 'matrix-location-field[formcontrolname="destination"] input, input[placeholder*="To"]',
+        "departure_date": 'input.mat-datepicker-input, input[placeholder*="Departure"]',
+        "return_date": 'input.mat-datepicker-input.mat-end-date, input[placeholder*="Return"]',
+        "one_way_tab": '#mat-tab-group-0-label-1, div[role="tab"]:has-text("One way")',
+        "round_trip_tab": '#mat-tab-group-0-label-0, div[role="tab"]:has-text("Round trip")',
+        "passengers_input": 'input[name="passengers"], .mat-mdc-form-field.pax-field input',
+        "cabin_class_select": 'select[name="class"], mat-select[formcontrolname="cabinClass"]',
     }
 
     # Legacy selectors (kept for backward compatibility)
