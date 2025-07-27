@@ -543,10 +543,16 @@ class ITAScrapper:
             # - Two inputs with placeholder="Add airport" (origin and destination)
             # - Date inputs with placeholder="Start date" and "End date"
 
-            # Fill origin (first "Add airport" input)
+            # Fill origin - target Angular Material location field components
             origin_selectors = [
+                # Angular Material matrix-location-field selectors
+                'matrix-location-field[formcontrolname="origin"] input',
+                'matrix-location-field[formcontrolname="origin"] .mat-mdc-input-element',
+                'matrix-location-field[formcontrolname="origin"] .mat-mdc-autocomplete-trigger',
+                # Fallback to generic selectors
                 "#mat-input-0",  # Specific ID from exploration
                 'input[placeholder="Add airport"]',  # First one should be origin
+                'input[placeholder*="From" i]',  # "From" placeholder
             ]
 
             origin_filled = False
@@ -555,13 +561,33 @@ class ITAScrapper:
                     origin_input = await self._page.wait_for_selector(
                         selector, timeout=3000
                     )
+                    # Angular Material form interaction - proper focus and event handling
                     await origin_input.click()
                     await self._page.wait_for_timeout(500)
-                    await origin_input.fill(params.origin)
 
-                    # Wait for autocomplete and press Enter or Tab
-                    await self._page.wait_for_timeout(1000)
-                    await self._page.keyboard.press("Tab")
+                    # Clear any existing value first
+                    await origin_input.fill("")
+                    await self._page.wait_for_timeout(200)
+
+                    # Type the airport code to trigger Angular's autocomplete
+                    await origin_input.type(params.origin, delay=100)
+                    await self._page.wait_for_timeout(
+                        1500
+                    )  # Wait for Angular autocomplete
+
+                    # Handle Angular Material autocomplete selection
+                    try:
+                        # Look for autocomplete options and select first one
+                        autocomplete_option = await self._page.wait_for_selector(
+                            ".mat-mdc-autocomplete-panel .mat-mdc-option:first-child",
+                            timeout=2000,
+                        )
+                        await autocomplete_option.click()
+                        await self._page.wait_for_timeout(500)
+                    except:
+                        # If no autocomplete, just press Tab to move to next field
+                        await self._page.keyboard.press("Tab")
+
                     origin_filled = True
                     logger.info(f"Filled origin with selector: {selector}")
                     break
@@ -572,10 +598,16 @@ class ITAScrapper:
             if not origin_filled:
                 raise ITAScrapperError("Could not fill origin field")
 
-            # Fill destination (second "Add airport" input)
+            # Fill destination - target Angular Material location field components
             destination_selectors = [
+                # Angular Material matrix-location-field selectors
+                'matrix-location-field[formcontrolname="destination"] input',
+                'matrix-location-field[formcontrolname="destination"] .mat-mdc-input-element',
+                'matrix-location-field[formcontrolname="destination"] .mat-mdc-autocomplete-trigger',
+                # Fallback to generic selectors
                 "#mat-input-1",  # Specific ID from exploration
                 'input[placeholder="Add airport"]:nth-of-type(2)',
+                'input[placeholder*="To" i]',  # "To" placeholder
             ]
 
             destination_filled = False
@@ -584,13 +616,33 @@ class ITAScrapper:
                     destination_input = await self._page.wait_for_selector(
                         selector, timeout=3000
                     )
+                    # Angular Material form interaction - proper focus and event handling
                     await destination_input.click()
                     await self._page.wait_for_timeout(500)
-                    await destination_input.fill(params.destination)
 
-                    # Wait for autocomplete and press Enter or Tab
-                    await self._page.wait_for_timeout(1000)
-                    await self._page.keyboard.press("Tab")
+                    # Clear any existing value first
+                    await destination_input.fill("")
+                    await self._page.wait_for_timeout(200)
+
+                    # Type the airport code to trigger Angular's autocomplete
+                    await destination_input.type(params.destination, delay=100)
+                    await self._page.wait_for_timeout(
+                        1500
+                    )  # Wait for Angular autocomplete
+
+                    # Handle Angular Material autocomplete selection
+                    try:
+                        # Look for autocomplete options and select first one
+                        autocomplete_option = await self._page.wait_for_selector(
+                            ".mat-mdc-autocomplete-panel .mat-mdc-option:first-child",
+                            timeout=2000,
+                        )
+                        await autocomplete_option.click()
+                        await self._page.wait_for_timeout(500)
+                    except:
+                        # If no autocomplete, just press Tab to move to next field
+                        await self._page.keyboard.press("Tab")
+
                     destination_filled = True
                     logger.info(f"Filled destination with selector: {selector}")
                     break
@@ -654,10 +706,14 @@ class ITAScrapper:
         """Set the trip type (one-way vs round-trip) in ITA Matrix using Angular Material tabs."""
         try:
             if is_round_trip:
-                # Look for Round Trip tab - it's usually the first/default tab
+                # Look for Round Trip tab - Angular Material specific selectors
                 round_trip_selectors = [
+                    # Specific Angular Material tab selectors from HTML
+                    "#mat-tab-group-0-label-0",  # Specific Round Trip tab ID
+                    'mat-tab[id="mat-tab-group-0-label-0"]',
+                    # Generic Angular Material tab selectors
+                    'div[role="tab"]:has-text("Round trip")',
                     'div[role="tab"]:has-text("Round Trip")',
-                    "#mat-tab-group-0-label-0",  # First tab ID
                     '.mdc-tab:has-text("Round Trip")',
                     'div.mat-mdc-tab:has-text("Round Trip")',
                 ]
@@ -682,10 +738,14 @@ class ITAScrapper:
                 )
 
             else:
-                # Look for One Way tab - use the working selectors from debug
+                # Look for One Way tab - Angular Material specific selectors from HTML
                 one_way_selectors = [
-                    'div[role="tab"]:has-text("One Way")',  # This one worked in debug!
-                    "#mat-tab-group-0-label-1",  # Second tab ID
+                    # Specific Angular Material tab selectors from HTML
+                    "#mat-tab-group-0-label-1",  # Specific One Way tab ID
+                    'mat-tab[id="mat-tab-group-0-label-1"]',
+                    # Generic Angular Material tab selectors
+                    'div[role="tab"]:has-text("One way")',
+                    'div[role="tab"]:has-text("One Way")',
                     '.mdc-tab:has-text("One Way")',
                     'div.mat-mdc-tab:has-text("One Way")',
                 ]
@@ -778,24 +838,59 @@ class ITAScrapper:
             # Use different selectors based on whether it's one-way or round-trip
             # One-way mode uses different input structure than round-trip mode
             if is_departure:
-                # For departure date, try multiple selector strategies
+                # For departure date, use Angular Material specific selectors (no placeholder text!)
                 date_selectors = [
+                    # Most specific Angular Material date picker selectors first
+                    'input[data-mat-calendar="mat-datepicker-1"]',  # Specific calendar attribute
+                    'input.mat-datepicker-input[id="mat-input-12"]',  # Specific ID from HTML
+                    # Angular Material date picker class combinations
+                    "input.mat-datepicker-input.mat-mdc-input-element",
+                    "input.mat-mdc-form-field-input-control.mat-datepicker-input",
+                    ".mat-datepicker-input",  # Angular Material date picker input
+                    "input.mat-datepicker-input",  # More specific Angular Material selector
+                    ".mat-mdc-input-element.mat-datepicker-input",  # Full Angular Material chain
+                    # Form field context selectors
+                    ".mat-mdc-form-field.date-field input",
+                    "mat-form-field.date-field input",
+                    # Generic Angular Material input selectors
                     ".mat-start-date",  # Round-trip mode
                     "input.mat-start-date",
                     "input[matstartdate]",
+                    # Data attribute selectors
+                    "input[data-mat-calendar]",  # Angular Material calendar attribute
+                    # Fallback placeholder-based selectors (may not exist)
                     'input[placeholder="Start date"]',  # Round-trip mode
                     'input[placeholder="Departure"]',  # One-way mode
                     'input[placeholder*="depart" i]',  # Case insensitive departure
-                    'input[type="text"]:not([placeholder*="Add airport"])',  # Any text input that's not airport
+                    'input[placeholder*="date" i]',  # Any input with "date" in placeholder
+                    # Aria and name attribute selectors for dates
+                    'input[type="text"][aria-label*="date" i]',  # Inputs with "date" in aria-label
+                    'input[type="text"][name*="date" i]',  # Inputs with "date" in name attribute
+                    # Last resort: any text input that's not airport/city/address related
+                    'input[type="text"]:not([placeholder*="Add airport"])'
+                    ':not([placeholder*="city" i]):not([placeholder*="address" i])'
+                    ':not([placeholder*="sales" i]):not([placeholder*="billing" i])',
                 ]
             else:
-                # For return date, use the mat-end-date class (round-trip only)
+                # For return date, use Angular Material specific selectors (round-trip only)
                 date_selectors = [
-                    ".mat-end-date",
+                    # Most specific Angular Material return date selectors
+                    'input[data-mat-calendar="mat-datepicker-2"]',  # Specific return calendar attribute
+                    'input.mat-datepicker-input[id="mat-input-13"]',  # Typical return date ID
+                    # Angular Material return date class combinations
+                    "input.mat-datepicker-input.mat-end-date",
+                    "input.mat-datepicker-input.mat-end-date",  # More specific return date
+                    ".mat-datepicker-input.mat-end-date",  # Angular Material return date
+                    # Traditional mat-end-date selectors
+                    ".mat-end-date",  # Traditional mat-end-date class
                     "input.mat-end-date",
                     "input[matenddate]",
+                    # Form field context for return dates
+                    ".mat-mdc-form-field.date-field:nth-of-type(2) input",
+                    # Placeholder-based selectors for return date
                     'input[placeholder="End date"]',
                     'input[placeholder="Return"]',
+                    'input[placeholder*="return" i]',  # Case insensitive return
                 ]
 
             date_input = None
@@ -810,9 +905,69 @@ class ITAScrapper:
                         is_enabled = await element.is_enabled()
 
                         if is_visible and is_enabled:
-                            # Additional check: make sure it's not the airport input
-                            placeholder = await element.get_attribute("placeholder")
-                            if placeholder and "airport" not in placeholder.lower():
+                            # Additional check: make sure it's not the airport input or other non-date fields
+                            placeholder = (
+                                await element.get_attribute("placeholder") or ""
+                            )
+                            aria_label = await element.get_attribute("aria-label") or ""
+                            name_attr = await element.get_attribute("name") or ""
+                            class_attr = await element.get_attribute("class") or ""
+
+                            # Combine all attributes for comprehensive checking
+                            all_attrs = (
+                                placeholder
+                                + " "
+                                + aria_label
+                                + " "
+                                + name_attr
+                                + " "
+                                + class_attr
+                            ).lower()
+
+                            # Exclude fields that are clearly not date inputs
+                            excluded_keywords = [
+                                "airport",
+                                "city",
+                                "address",
+                                "sales",
+                                "billing",
+                                "street",
+                                "zip",
+                                "postal",
+                                "phone",
+                                "email",
+                                "name",
+                                "company",
+                                "organization",
+                                "contact",
+                            ]
+
+                            # Check if this field should be excluded
+                            is_excluded = any(
+                                keyword in all_attrs for keyword in excluded_keywords
+                            )
+
+                            # Prefer fields that have date-related indicators
+                            has_date_indicators = any(
+                                indicator in all_attrs
+                                for indicator in [
+                                    "date",
+                                    "depart",
+                                    "departure",
+                                    "start",
+                                    "calendar",
+                                    "end",
+                                    "return",
+                                    "mat-datepicker",
+                                    "datepicker",
+                                    "mat-input",
+                                ]
+                            )
+
+                            if not is_excluded and (
+                                has_date_indicators or selector != date_selectors[-1]
+                            ):
+                                # Either it has date indicators, or it's not the last-resort selector
                                 date_input = element
                                 successful_selector = selector
                                 break
@@ -833,15 +988,59 @@ class ITAScrapper:
                             await input_elem.get_attribute("placeholder") or ""
                         )
                         class_name = await input_elem.get_attribute("class") or ""
+                        aria_label = await input_elem.get_attribute("aria-label") or ""
+                        name_attr = await input_elem.get_attribute("name") or ""
+
+                        # Combine all attributes for comprehensive checking
+                        all_attrs = (
+                            placeholder
+                            + " "
+                            + class_name
+                            + " "
+                            + aria_label
+                            + " "
+                            + name_attr
+                        ).lower()
 
                         # Look for date-related hints
-                        if (
-                            any(
-                                keyword in (placeholder + class_name).lower()
-                                for keyword in ["date", "depart", "return"]
-                            )
-                            and "airport" not in (placeholder + class_name).lower()
-                        ):
+                        date_keywords = [
+                            "date",
+                            "depart",
+                            "departure",
+                            "return",
+                            "start",
+                            "end",
+                            "calendar",
+                            "mat-datepicker",
+                            "datepicker",
+                            "mat-input",
+                        ]
+                        has_date_hints = any(
+                            keyword in all_attrs for keyword in date_keywords
+                        )
+
+                        # Exclude non-date fields
+                        excluded_keywords = [
+                            "airport",
+                            "city",
+                            "address",
+                            "sales",
+                            "billing",
+                            "street",
+                            "zip",
+                            "postal",
+                            "phone",
+                            "email",
+                            "name",
+                            "company",
+                            "organization",
+                            "contact",
+                        ]
+                        is_excluded = any(
+                            keyword in all_attrs for keyword in excluded_keywords
+                        )
+
+                        if has_date_hints and not is_excluded:
                             is_visible = await input_elem.is_visible()
                             is_enabled = await input_elem.is_enabled()
 
@@ -849,7 +1048,7 @@ class ITAScrapper:
                                 date_input = input_elem
                                 successful_selector = "date-keyword-based"
                                 break
-                    except:
+                    except Exception:
                         continue
 
             if not date_input:
@@ -861,35 +1060,41 @@ class ITAScrapper:
                 f"Found {'departure' if is_departure else 'return'} date input with selector: {successful_selector}"
             )
 
-            # Click outside first to ensure no overlays are blocking
-            await self._page.click("body", position={"x": 50, "y": 50})
-            await self._page.wait_for_timeout(300)
-
-            # Now click the date input
+            # Now click the date input - Angular Material specific interaction
             await date_input.click()
             await self._page.wait_for_timeout(500)
 
-            # Clear any existing value
+            # Clear any existing value - Angular Material inputs need proper clearing
+            await date_input.focus()
             await self._page.keyboard.press("Control+a")
             await self._page.keyboard.press("Delete")
-            await self._page.wait_for_timeout(200)
+            await self._page.wait_for_timeout(300)
 
             # Type the date slowly to avoid Angular Material validation issues
             formatted_date = target_date.strftime("%m/%d/%Y")
-            await date_input.type(formatted_date, delay=150)  # Slower typing
+            await date_input.type(
+                formatted_date, delay=100
+            )  # Slower typing for Angular
 
             logger.info(
                 f"Typed {'departure' if is_departure else 'return'} date: {formatted_date}"
             )
 
-            # Press Tab to move to next field (better than Enter for Angular Material)
+            # For Angular Material, we need to trigger change events properly
             await self._page.keyboard.press("Tab")
             await self._page.wait_for_timeout(500)
 
-            # If this is a return date, give extra time for the calendar to close
+            # Try to close any Angular Material calendar overlay
+            try:
+                await self._page.keyboard.press("Escape")
+                await self._page.wait_for_timeout(300)
+            except:
+                pass
+
+            # If this is a return date, give extra time for Angular animations
             if not is_departure:
                 await self._page.wait_for_timeout(1000)
-                # Click outside to ensure calendar closes
+                # Click outside to ensure Angular Material calendar closes
                 await self._page.click("body", position={"x": 200, "y": 200})
                 await self._page.wait_for_timeout(500)
 
@@ -905,8 +1110,13 @@ class ITAScrapper:
     async def _submit_matrix_search(self):
         """Submit the ITA Matrix search form."""
         try:
-            # Look for search button - could be various types
+            # Look for search button - Angular Material button selectors
             search_selectors = [
+                # Angular Material specific button selectors
+                'button.mat-mdc-raised-button[type="submit"]',
+                'button.mat-mdc-button-base[type="submit"]',
+                'button.mdc-button--raised:has-text("Search")',
+                # Generic button selectors
                 'button[type="submit"]',
                 'button:has-text("Search")',
                 'button:has-text("Find flights")',
