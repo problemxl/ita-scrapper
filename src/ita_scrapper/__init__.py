@@ -2,7 +2,7 @@
 ITA Scrapper - A Python library for scraping ITA travel website.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.3"
 __author__ = "ITA Scrapper Contributors"
 
 from .exceptions import (
