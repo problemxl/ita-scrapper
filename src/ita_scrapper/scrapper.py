@@ -563,16 +563,16 @@ class ITAScrapper:
                     )
                     # Angular Material form interaction - proper focus and event handling
                     await origin_input.click()
-                    await self._page.wait_for_timeout(500)
+                    await self._page.wait_for_timeout(200)
 
                     # Clear any existing value first
                     await origin_input.fill("")
-                    await self._page.wait_for_timeout(200)
+                    await self._page.wait_for_timeout(100)
 
                     # Type the airport code to trigger Angular's autocomplete
-                    await origin_input.type(params.origin, delay=100)
+                    await origin_input.type(params.origin, delay=50)
                     await self._page.wait_for_timeout(
-                        1500
+                        600
                     )  # Wait for Angular autocomplete
 
                     # Handle Angular Material autocomplete selection
@@ -583,7 +583,7 @@ class ITAScrapper:
                             timeout=2000,
                         )
                         await autocomplete_option.click()
-                        await self._page.wait_for_timeout(500)
+                        await self._page.wait_for_timeout(200)
                     except:
                         # If no autocomplete, just press Tab to move to next field
                         await self._page.keyboard.press("Tab")
@@ -618,16 +618,16 @@ class ITAScrapper:
                     )
                     # Angular Material form interaction - proper focus and event handling
                     await destination_input.click()
-                    await self._page.wait_for_timeout(500)
+                    await self._page.wait_for_timeout(200)
 
                     # Clear any existing value first
                     await destination_input.fill("")
-                    await self._page.wait_for_timeout(200)
+                    await self._page.wait_for_timeout(100)
 
                     # Type the airport code to trigger Angular's autocomplete
-                    await destination_input.type(params.destination, delay=100)
+                    await destination_input.type(params.destination, delay=50)
                     await self._page.wait_for_timeout(
-                        1500
+                        600
                     )  # Wait for Angular autocomplete
 
                     # Handle Angular Material autocomplete selection
@@ -638,7 +638,7 @@ class ITAScrapper:
                             timeout=2000,
                         )
                         await autocomplete_option.click()
-                        await self._page.wait_for_timeout(500)
+                        await self._page.wait_for_timeout(200)
                     except:
                         # If no autocomplete, just press Tab to move to next field
                         await self._page.keyboard.press("Tab")
@@ -657,7 +657,7 @@ class ITAScrapper:
             await self._handle_matrix_dates(params)
 
             # Wait a moment for the form to update
-            await self._page.wait_for_timeout(1000)
+            await self._page.wait_for_timeout(500)
 
             # Submit the search
             await self._submit_matrix_search()
