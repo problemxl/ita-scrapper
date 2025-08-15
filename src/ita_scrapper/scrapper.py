@@ -224,23 +224,86 @@ class ITAScrapper:
         """
         try:
             self._playwright = await async_playwright().start()
+
+            # Enhanced stealth args for better headless detection evasion
+            stealth_args = [
+                "--no-sandbox",
+                "--disable-blink-features=AutomationControlled",
+                "--disable-web-security",
+                "--disable-features=VizDisplayCompositor",
+                "--disable-dev-shm-usage",
+                "--disable-extensions",
+                "--disable-plugins",
+                "--disable-images",  # Faster loading
+                "--no-first-run",
+                "--no-default-browser-check",
+                "--disable-default-apps",
+                "--disable-background-timer-throttling",
+                "--disable-backgrounding-occluded-windows",
+                "--disable-renderer-backgrounding",
+                "--disable-field-trial-config",
+                "--disable-ipc-flooding-protection",
+            ]
+
             self._browser = await self._playwright.chromium.launch(
                 headless=self.headless,
-                args=[
-                    "--no-sandbox",
-                    "--disable-blink-features=AutomationControlled",
-                    "--disable-web-security",
-                    "--disable-features=VizDisplayCompositor",
-                ],
+                args=stealth_args,
             )
 
+            # Enhanced context with better stealth
             context = await self._browser.new_context(
                 viewport={
                     "width": self.viewport_size[0],
                     "height": self.viewport_size[1],
                 },
-                user_agent=self.user_agent,
+                user_agent=self.user_agent
+                or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                extra_http_headers={
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.5",
+                    "Accept-Encoding": "gzip, deflate",
+                    "DNT": "1",
+                    "Connection": "keep-alive",
+                    "Upgrade-Insecure-Requests": "1",
+                },
             )
+
+            # Add stealth JavaScript to mask headless detection
+            await context.add_init_script("""
+                // Remove webdriver property
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined,
+                });
+                
+                // Mock plugins
+                Object.defineProperty(navigator, 'plugins', {
+                    get: () => [1, 2, 3, 4, 5],
+                });
+                
+                // Mock languages
+                Object.defineProperty(navigator, 'languages', {
+                    get: () => ['en-US', 'en'],
+                });
+                
+                // Override permissions API
+                const originalQuery = window.navigator.permissions.query;
+                window.navigator.permissions.query = (parameters) => (
+                    parameters.name === 'notifications' ?
+                    Promise.resolve({ state: Notification.permission }) :
+                    originalQuery(parameters)
+                );
+                
+                // Mock chrome runtime
+                window.chrome = { runtime: {} };
+                
+                // Override toString methods
+                window.navigator.webdriver = undefined;
+                
+                // Mock hardware concurrency
+                Object.defineProperty(navigator, 'hardwareConcurrency', {
+                    get: () => 4,
+                });
+            """)
 
             self._page = await context.new_page()
             self._page.set_default_timeout(self.timeout)
@@ -506,8 +569,9 @@ class ITAScrapper:
                     f"HTTP {response.status} error accessing {self.base_url}"
                 )
 
-            # Wait a bit for JavaScript to load
-            await self._page.wait_for_timeout(5000)
+            # Wait a bit for JavaScript to load - longer delay for headless mode
+            initial_delay = 8000 if self.headless else 5000
+            await self._page.wait_for_timeout(initial_delay)
 
             # Take a screenshot for debugging
             await self._page.screenshot(
